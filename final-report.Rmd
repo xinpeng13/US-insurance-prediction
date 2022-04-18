@@ -1,0 +1,516 @@
+---
+title: "JSC370 Final Project"
+author: "Xinpeng Shan"
+date: "2022/4/17"
+output: 
+    html_document:
+        toc: TRUE
+        toc_float: TRUE
+---
+
+```{r echo=F, warning=F, include=F}
+library(dplyr)
+library(zoo)
+library(ggplot2)
+library(mgcv)
+library(patchwork)
+library(rpart)
+library(rpart.plot)
+library(randomForest)
+library(gbm)
+library(xgboost)
+library(tidyverse)
+library(caret)
+library(plotly)
+library(knitr)
+library(widgetframe)
+```
+
+## Introduction
+
+As medical treatments become more costly during the global pandemic, it has imposed heavy medical burdens on people who requires medical services. According to The National Health Expenditure Accounts, US healthcare spending had grew by 9.7% in 2020 and the medical cost has a 19.7% share in the nation's GDP. To give people information on the crucial factors that may increase there health insurance charges in the US and give people idea on the total insurance charges they need to pay, the dataset used in this research is regarding the medical costs billed by health insurance companies in the US. To solve the problem of accurately predicting the insurance charges for individuals who live in the United States, the aim of the project is to build a machine learning model that can best predict the individual insurance charges, provide that the relavent informations of that individual is given.
+
+
+```{r echo=F, warning=F, include=F}
+data <- read.csv("data/insurance.csv")
+```
+
+ 
+## Methods
+
+### Data Source
+
+The dataset is an open-source dataset acquired from Kaggle, it is a sample of medical insurance information from the whole population in the US (The year that the data is aquired is not provided). There are 1338 observations in the dataset with variables like age, gender, bmi, etc. for each individual observations. The summary statistics of all the variables in this dataset summarized in result section.
+
+### Data wrangling and data exploration
+
+The following steps are used on data wrangling and data exploration:
+
+- Checking the variable types and if there are missing values in the dataset. 
+
+- Visualizing the distribution of each variable to check if there are distinctive shapes in those variables. 
+
+- Creating interactive visualizations to showcase the relationship between different factors and the insurance costs billed by insurance companies.
+
+### Machine Learning models
+
+Six machine learning models are builded in this research including linear regression, regression tree, bagging, random forest, boosting and XGBoost, in order to compare the performance of each model to find the best fitted one on predicting the insurance charges.
+
+## Results
+
+### Summary Statistics and Discription of each Variable
+
+```{r echo=F}
+na_count <-sapply(data, function(x) sum(length(which(is.na(x)))))
+
+t <- tribble(
+  ~`Variable`, ~"Description", ~"type",~"missing values",
+  "age", "age of beneficiary", "numarical","0",
+  "sex", "gender of insurance contractor", "categorical (male, female)","0",
+  "bmi", "body mass index of beneficiary", "numarical","0",
+  "children", " number of children covered by the insurance ", "categorical (0, 1, 2, 3, 4, 5)","0",
+  "smoker", "if the beneficiary smokes ", "categorical (yes, no)","0",
+  "region", "the beneficiary's residances in US ", "categorical (northeast, northwest, southeast, southwest)","0",
+  "charges", "the medical cost covered by the company", "numarical","0",
+)
+knitr::kable(t, caption = "Informations on variables in the dataset")
+```
+
+### Variable Distributions
+
+To do further analysis using the dataset, we need to first understand the distribution of the variable we want to predict, which is **charges**. From Figure 1, we can see that the distribution of charges is extremely right-skewed, indicating that a large percantage of observations in the dataset have insurance charges close to 0.
+
+```{r echo=FALSE,warning=F, fig.cap="Figure 1. Distribution of insurance charges covered by the insurance companies",fig.height=3}
+ggplot(data, aes(charges, ..density..,)) + geom_histogram(bins = 30, fill = "#C7E4D9")+ geom_density() +theme_minimal()
+```
+
+The scatterplot below showcase the distribution of bmi, we can notice that as bmi increases, the value of insurance charges increases. From the histograms of bmi by region, bmi has a normal distribution shape for all four regions in the US. 
+
+```{r echo=FALSE, warning=F, fig.cap="Figure 2. Distribution of bmi and region", fig.height=3}
+
+p2 <- ggplot(data, aes(x = bmi, y= charges, color = charges))+geom_point() + geom_smooth(formula='y~x',method = "lm") + labs(caption = "Charges versus bmi colored by charges")
+
+p3 <- ggplot(data, aes(x=bmi)) + geom_histogram(bins = 60, fill = "#7D4997")+ theme_minimal() + labs(caption="Histogram plots of bmi by region") + facet_wrap("region") + labs(caption = "Histograms of bmi by region")
+
+p2 + p3
+```
+
+The plots below are regarding whether smoking has an influence on insurance charges. From Figure 3, we can notice that smokers have much higher insurance charges compare to individuals who do not smoke. The high insurance charges also indicates the worsening of health situation that people are in. From the distribution of charges by smoker, we can see that the distribution of charges for non-smokers is right-skewed, indication the lower cost they spend on medical insurance, while the distribution of charges for smokers have a bimodal distribution, with the two modes both have charges larger than the mode for the distribution of non-smokers.
+
+```{r echo=FALSE,warning=F, fig.height=3}
+p4 <- ggplot(data, aes(x = age, y = charges, color = smoker))+geom_point() +labs(caption="Scatterplot of charges versus age") 
+
+p5 <- ggplot(data, aes(smoker, charges, fill=smoker)) + geom_boxplot() + labs(caption="Boxplot of charges versus smoker")
+p4 + p5 
+```
+
+```{r echo=FALSE,warning=F, fig.cap="Figure 3. Visualizations on smoking", fig.height=3}
+p6 <- ggplot(data, aes(x = charges, fill = smoker)) + geom_density(alpha = 0.5) +labs(caption="Distribution of charges by smoker")
+p6
+```
+
+### Interactive visualizations
+
+##### Smoking and Insurance Charges
+
+The first interactive visualization is a line chart with age as x-axis, charges as y-axis and colored by smoker, we can easily notice that the insurance charges is higher across all ages for people who are smokers.
+```{r include=T, echo=F}
+p1<- ggplot(data, aes(x=age, y=charges, col = smoker))+geom_line() + theme_minimal() + scale_colour_brewer()+ labs(title="Insurance Charges verses Age by Smoker")
+
+ggplotly(p1)
+```
+
+##### Region and Insurance Charges{.tabset}
+
+To see if people at different age have similar insurance charges in different regions of US, the scatterplot and heatmap on the mean insurance charges for people in different region and age are created. We can notice that in southeast and northeast region, people who are around 20 years old have large insurance charges covered compare with people at the same age in southwest and northwest regions. Also, people with higher age tend to have larger insurance charges. 
+
+```{r include=F, echo=F, warning=F}
+newdata <- data %>% na.omit() %>%
+  group_by(region,  age) %>%
+  summarise(charges = mean(charges))
+```
+
+```{r include=F, echo=F, warning=F}
+p<- ggplot(newdata, aes(age,region))+
+  geom_raster(aes(fill=charges))+
+  labs(title = "Mean Insurance charges for people in different region and age")+
+  scale_fill_gradient(low="darkblue",high="yellow") + theme_minimal()
+
+heatmap_region <- ggplotly(p)
+
+scatter_region <- newdata %>% 
+  plot_ly(x=~age, y=~region, type="scatter", mode = "markers", color= ~charges, size=~charges, sizes = c(5, 70), marker=list(sizemode="diameter", opacity=0.5)) %>% layout(title= "Mean Insurance charges for people in different region and age")
+```
+
+###### Heatmap
+
+```{r echo=FALSE,warning=FALSE}
+heatmap_region
+```
+
+###### Scatterplot
+
+```{r echo=FALSE,warning=FALSE}
+scatter_region
+```
+
+##### Number of Children and Insurance Charges{.tabset}
+
+To visualize how the number of children people have, affacts the amount of insurance charges people pay at different ages, I created the scatterplot and line chart below. For people at a younger age and have less than 4 children, the insurance charges do not differ by a great amount. However, for people over 50 years old, the amount of insurance charges are higher for people who have 1-3 children. From the data we have, people who have 4 children have a higher amount of insurance charges at a younger age compared with people who have other numbers of children, but it may be caused by the lack of data collected for people who have 4 or 5 children.
+
+```{r include=F, echo=F, warning=F}
+newdata2 <- data %>% na.omit() %>%
+  group_by(age,  children) %>%
+  summarise(charges = mean(charges))
+
+```
+
+```{r include=T, echo=F, warning=F}
+
+scatter_children<- newdata2 %>% 
+  plot_ly(x=~age, y=~children, type="scatter", mode = "markers", color= ~charges, size=~charges, sizes = c(5, 70), marker=list(sizemode="diameter", opacity=0.5))%>%
+  layout(title = 'Insurance charges for people with different number of children and age')
+```
+
+```{r include=T, echo=F, warning=F}
+data$children <- as.factor(data$children)
+p2<- ggplot(data, aes(x=age, y=charges, col = children))+geom_line() 
+
+line_children <-ggplotly(p2) %>%
+  layout(title = 'Insurance charges for people with different number of children and age')
+```
+
+
+###### Scatterplot
+
+```{r echo=FALSE,warning=FALSE}
+scatter_children
+```
+
+###### Line Chart
+
+```{r echo=FALSE,warning=FALSE}
+line_children
+```
+
+
+
+### Machine Learning Models
+
+Before building the models, the dataset is split into training and testing datasets. The training dataset has 75% of data and the testing dataset has 25% of data. Here are the number of observations in the each dataset:
+```{r include=F}
+set.seed(13)
+n = nrow(data)
+split = sample(c(TRUE, FALSE), n, replace=TRUE, prob=c(0.75, 0.25))
+
+train = data[split, ]
+test = data[!split, ]
+nrow(train)
+nrow(test)
+```
+
+
+```{r echo=F}
+t<-tribble(
+  ~"dataset", ~"Number of Rows",
+  "train", "993",
+  "test", "345"
+)
+
+knitr::kable(t, caption = "Number of rows in the two dataset")
+```
+
+##### Linear Regression
+
+Firstly, I built a linear regression model with all variables as predictor and charges as responses using the training dataset. From Table 3, we can see that age, bmi, smoker and children have p-values that are extremely small, which indicates that it is very likely that those variables explains the variation in the response.
+
+```{r include=F}
+all <- lm(charges ~ age + sex + bmi + region + smoker + children, data = train)
+summary(all)
+```
+
+```{r echo=F}
+t <- tribble(
+  ~"", ~"Pr(>|t|) ",
+  "age", "< 2e-16",
+  "sexmale", "0.48599",
+  "bmi", "< 2e-16",
+  "children", " 0.000577",
+  "smokeryes", "<2e-16 ", 
+  "regionnorthwest", "0.29430", 
+  "regionsoutheast", " 0.33319", 
+  "regionsouthwest", " 0.03229", 
+)
+
+knitr::kable(t, caption = "p-values of each predictor in the linear regression model built using training dataset")
+```
+
+Then, I built the two models below to decide which one to use as the final model.
+
+- model 1: Prodictor: age, bmi, smoker, children
+- model 2: Prodictor: age, bmi, smoker
+
+```{r include=F}
+mod1 <- lm(charges ~ age + bmi + smoker + children, data = train)
+mod2 <- lm(charges ~ age + bmi + smoker, data = train)
+
+summary(mod1)
+summary(mod2)
+```
+
+The information of the two models are summarised in the table below.
+```{r echo=F}
+t<-tribble(
+  ~"model", ~"Number of predictors",~"Adjusted R squared",
+  "model 1", "4",summary(mod1)$r.squared,
+  "model 2", "3",summary(mod2)$r.squared,
+)
+
+knitr::kable(t, caption = "Adjusted R squared of the two models")
+```
+
+From the table above, we can notice that although model 2 has a slightly (0.0015) lower Adj R squared compared with model 1, it has 1 less predictor, which makes it a more feasible linear model because it can use minimal information to create a reasonable prediction. Therefore, we choose model 2 to be the final model.
+
+- Analyse performance of the final linear regression model
+
+From the Actual versus Prediction Plot, we can see that the points are scattered around the fitted line and there are very few points that appear to be far away from the line vertically, which indicates there are few outliers in the dataset. Since there is no point that is horizontally further away from the mean, there appears to be no significant leverage that pulls the regression line by a great amount.
+
+
+```{r echo=F, fig.height=4,fig.cap="Actual versus Prediction plot of linear model built using training dataset"}
+plot(train$charges ~ fitted(mod2), xlab="Y-hat(Prediction)", ylab="Y(Charges)",col="#7D4997")
+abline(a = 0, b = 1)
+```
+
+
+In the Residual vs. Fitted plot, there is a curved shape, which indicates a slight violation of the linearity assumption. From the Normal Q-Q plot, we can notice that there is some deviation at the right end of the Normal Q-Q plot, which means there is a slight violation of the normality assumption. There is an upward trend on the Scale-Location plot, which is caused by the unequal variance. And finally, in the Residual vs. Leverage plot, There are some amount of points that lie below Cook's distance, which demonstrates the influential points in the training dataset.
+
+```{r echo=F, fig.cap="Plots to analysis the linear regression model built using the training dataset"}
+par(mfrow=c(2,2))
+plot(mod2,col="#7D4997")
+```
+
+- Validate the model using the test dataset
+
+To check the performance of the final model, I built another model using the same predictors but using the test dataset. It achieves an adj R squared of 0.7048884, which means that our model explains around 70% of the variation in total charge in future data. There is no big difference in the violation of assumptions. The estimated coefficients do not differ by a great amount from the training dataset. Therefore, I can conclude that the model is validated. 
+
+```{r include=F}
+val <- lm(charges ~ age + bmi + smoker, data = test)
+summary(mod2)
+summary(val)
+```
+
+```{r include=F}
+par(mfrow=c(2,3))
+plot(test$charges ~ fitted(val), main="actual versus Prediction Plot", xlab="Y-hat(Prediction)", ylab="Y(Charges)",col="#7D4997")
+abline(a = 0, b = 1)
+plot(val,col="#7D4997")
+```
+
+
+##### Regression Tree
+
+In this section, we built a regression tree to predict charges. To fit a regression tree with reasonable number of splits, we need to determine the optimal complexity parameter (cp) that have the minimal xerror to prune the tree. This process reduce the complexity of regression tree and prevent building a model that is overfited to the training dataset. From the CP table, the minimal xerror is 0.15573 with 7 splits, and 0.00196 as the optimal cp. The pruned tree is shown below.
+
+```{r echo=F}
+treefit <- rpart(charges~.,data=data,method="anova",control=list(minsplit=10,minbucket=3,cp=0,xval=10))
+```
+
+```{r echo=F, fig.height=3.5, fig.cap="Pruned Regression Tree Model"}
+optimalcp <- treefit$cptable[which.min(treefit$cptable[,"xerror"]),"CP"]
+treepruned <- prune(treefit, cp=optimalcp)
+rpart.plot(treepruned)
+
+regtree_pred <- predict(treepruned,test)
+test_t <- cbind(test,regtree_pred)
+rt_test_rmse <- sqrt(mean((test_t$regtree_pred - test_t$charges)^2))
+```
+
+##### Bagging
+ 
+A bagging model is built to predict charges. From the variable importance plot below, **smoker** is the most important feature on predicting insurance charges, followed by bmi and age. 
+
+```{r echo=F,fig.height=3.5, fig.cap="Variable Importance Plot of Bagging Model"}
+set.seed(1989)
+bag<- randomForest(charges~.,data=train,mtry=6, na.action=na.omit)
+varImpPlot(bag,n.var = 6,col="#002366")
+# importance(bag)
+yhat_bag = predict(bag, newdata = test)
+bag_test_rmse <- sqrt(mean((yhat_bag-test$charges)^2))
+```
+
+##### Random Forest
+
+A random forest model is built to predict charges. The variable importance plot is shown below. Similar to the Bagging model,**smoker** is the most important feature on predicting insurance charges, followed by bmi and age. 
+
+```{r echo=F,fig.height=3.5, fig.cap="Variable Importance Plot of Random Forest Model"}
+set.seed(1989)
+rf <- randomForest(charges~.,data=train,na.action = na.omit)
+
+varImpPlot(rf,n.var=6,col="#002366")
+yhat_rf = predict(rf, newdata = test)
+rf_test_rmse <- sqrt(mean((yhat_rf-test$charges)^2))
+```
+
+##### Boosting
+
+In this section, boosting model with 1000 trees is built using the training dataset. To pick the best value for the shrinkage parameter, a sequence of boosting models is built with shrinkage parameter values from a range of 0.001 to 0.1 with a step size of 0.005. The training MSE and cross-validation error are calculated for each model and plotted in the graph below. We can notice that the MSE for training data is the smallest when the shrinkage parameter is around 0.025 and the cross-validation error is flattened at around 0.01. Thus, 0.025 is chosen for the shrinkage parameter to build the final boosting model. In this way, the model will not only have a good performance on the training dataset but also can be used to predict unseen future data.
+
+```{r echo=F}
+set.seed(1989)
+data$sex <- ifelse(data$sex=="male",1,0)
+data$smoker <- ifelse(data$smoker=="yes",1,0)
+data$region <- ifelse(data$region=="northeast",1,
+                            ifelse(data$region == "northwest", 2,
+                                   ifelse(data$region == "southeast", 3, 4)))
+
+set.seed(1989)
+train_ind_boosting <- sample(seq_len(nrow(data)), size = round(0.7*nrow(data)))
+train_boosting <- data[train_ind_boosting,]
+test_boosting <- data[-train_ind_boosting,]
+```
+
+```{r echo=F,fig.height=3, fig.width=6, fig.cap="MSE and CV Error for Training Dataset verses Shrinkage Parameter"}
+set.seed(1989)
+shrinkage = seq(0.001, 0.1, 0.005)
+mse = c()
+cv = c()
+for(x in shrinkage){
+  boost = gbm(charges~., data = train_boosting, distribution = 'gaussian', n.trees = 1000, shrinkage = x, interaction.depth = 1, cv.folds = 10)
+
+  yhat_boost <- predict(boost, newdata = train_boosting, n.trees = 1000)
+  # MSE
+  mse <- mse <- c(mse, mean((yhat_boost-train_boosting$charges)^2))
+  cv <- c(cv, boost$cv.error[1000])
+}
+
+mse_df <-  data.frame(s = shrinkage, mse = mse, cv = cv)
+ggplot(mse_df, aes(x = s, y = mse,color="Mean Squared Error (MSE)")) + geom_point() + geom_smooth(method = 'loess', formula ='y ~ x') +xlab("shrinkage") +ylab("MSE for training data") +geom_line(aes(y = cv,color="Cross Validation Error"))
+```
+
+
+
+```{r echo=F,fig.height=3, fig.cap="Variable Importance Plot of Boosting Model"}
+set.seed(1989)
+final_boost = gbm(charges~., data = train_boosting, distribution = "gaussian", n.trees = 1000, shrinkage = 0.025, interaction.depth = 1, cv.folds = 10)
+knitr::kable(summary(final_boost), caption = "Relative influence of each variable in Boosting Model")
+
+yhat_boost <- predict(final_boost, newdata = test_boosting, n.trees = 1000)
+boost_test_rmse <- sqrt(mean((yhat_boost-test_boosting$charges)^2))
+```
+
+From the variable importance plot and the table witch generalized the variable importance values for each variable. The level of importance for each variable have a similar order compare with the previous models. We can notice that **smoker** have a relative influence of 73.2600934 which is five times higher than the relative influence of age. On contrast, **sex** is the variable with least relative influence with a value of 0.0451726
+
+##### XGBoost
+Finally, we created Extreme Gradient Boosting model to predict the salary and set up a grid search on max_depth, nrounds and eta. We trained the XGBoost model using the tuning grid and plot the variable importance plot below.
+
+```{r include=F}
+set.seed(1989)
+train_control = trainControl(method = "cv",
+                             number = 10,
+                             search = "grid")
+
+tune_grid <- expand.grid(max_depth = c(1, 3, 5, 7),
+                        nrounds = (1:10) *50,
+                        eta = c(0.01, 0.1, 0.3),
+                        gamma = 0,
+                        subsample = 1,
+                        min_child_weight = 1,
+                        colsample_bytree = 0.6)
+
+xgb <- caret::train(charges~., 
+                          data = train_boosting,
+                          method = "xgbTree",
+                          trControl = train_control,
+                          tuneGrid = tune_grid)
+
+```
+
+```{r echo=F,fig.height=2.5, fig.cap="Variable Importance Plot of XGBoost Model"}
+set.seed(1989)
+plot(varImp(xgb, scale=F)) 
+
+yhat_xgb <- predict(xgb, newdata = test_boosting)
+
+xgb_mse <- xgb$train.error[1000]
+xgb_test_rmse <- sqrt(mean((yhat_xgb-test_boosting$charges)^2))
+```
+
+
+## Conclusion and Summary
+
+### Key Findings
+
+- From the visualizations and the predictors in the linear regression model, we can notice whether the beneficiary smokes affect the amount of insurance bills that the insurance company pays by a large amount (more than 20000 higher on insurance bill for person who smokes), while variable bmi and age also have a positive association with charges (the coefficients are 289.05 and 205.65 respectively in test dataset). 
+
+- The final linear regression model has 3 predictors including age, bmi, smoker. The linear model explains around 76% of the variation of the response variable (charges) in the training dataset and around 70% of the variation in the testing dataset
+
+- From the variable importance plots of Bagging, Random Forest, Boosting and XGBoost, all of them suggest that **smoker** is the most important factor that will affect the insurance charges, while **sex**, **children** and **region** are factors that do not have large influences on insurance charges.
+
+### Summary tables
+
+##### Linear Regression
+
+The table below summarized the coefficients of the linear regression model built using the training and testing dataset. 
+
+```{r echo=F}
+t<-tribble(
+  ~"Dataset used to build the linear model", ~"Coefficient of age", ~"Coefficient of bmi", ~"Coefficient of smokeryes",
+  "train", "277.91","328.52","23581.99",
+  "test", "205.65","289.05","24421.41",
+)
+knitr::kable(t, caption = "Estimated coefficients of the two linear models built using training and testing dataset respectively")
+```
+
+##### Mechine learning models
+
+The table below summarized the Test RMSE for each mechine learning model. From the result, we can see that Extreme Gradient Boosting Model have the smallest RMSE, with a value of 4162.544, followed by Regression Tree (4836.064) and Random Forest (5091.062). Since , The test RMSE for all 5 models are not terriblly large consider that **charges** takes value from 0 up to 60000. Since smaller in test RMSE gives insights on the performence of each model in future datas, we will choose XGBoost to be the final model on predicting charges.
+```{r echo=F}
+t<- tribble(
+  ~`Model`, ~'test RMSE',
+  "Regression Tree", rt_test_rmse,
+  "Bagging", bag_test_rmse,
+  "Random Forest", rf_test_rmse,
+  "Boosting", boost_test_rmse,
+  "Extreme Gradient Boosting (XGBoost)",xgb_test_rmse
+)
+
+knitr::kable(t, caption = "Test RMSE for each mechine learning model")
+```
+
+
+Since the higher insurance bills that the insurance company pays, the larger the bill from the hospital, we can see the drawbacks of smoking from the statistical results. To reduce the medical burden on individuals, we could start by quitting unhealthy habits like smoking and increasing the amount of time we spend on physical exercise to lower the bmi.
+
+### Strengths and limitations
+
+One of the greatest strength of this research is that we aimed to build models that are flexable, simple enough to be used and are not over-fitted to the training dataset. In addition, we meticulously checked all model assumptions when building the linear model, to make sure that the model are used to its intended purposes. 
+
+However, there still exist some limitations to the research. Since the year that the dataset is aquired is not specified, it limits the ability of model to have an accurate prediction on datas acquired in other years, as the insurance charges may differ accross years. Since the dataset only have 1338 observations, there is a trade-off between having enough datas in the training dataset to build a more accurate machine learning model and to measure the performance of model on testing dataset. 
+
+
+
+## Appendix
+
+Data source: https://www.kaggle.com/mirichoi0218/insurance?select=insurance.csv
+
+Github repo: https://github.com/xinpeng13/JSC370/tree/main/midterm-report
+
+Heathcare spending research: https://www.cms.gov/Research-Statistics-Data-and-Systems/Statistics-Trends-and-Reports/NationalHealthExpendData/NationalHealthAccountsHistorical
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

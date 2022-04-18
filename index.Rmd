@@ -1,0 +1,12 @@
+---
+title: "JSC370 Final Project"
+author: "Xinpeng Shan"
+output: 
+    html_document:
+        toc: TRUE
+        toc_float: TRUE
+---
+
+## Description
+
+This is the JSC370 final project. In this project, I will be analysing an open-source dataset acquired from Kaggle, which have medical insurance information from the US. To solve the problem of accurately predicting the insurance charges for individuals who live in the United States, six machine learning models are built in total, including linear regression, regression tree, random forest, Bagging, Boosting and XGBoost.

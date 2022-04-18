@@ -1,0 +1,47 @@
+h1 {
+  font-size: 32px;
+  font-family: Times;
+}
+h1.title {
+  font-size: 32px;
+  font-family: Times;
+}
+
+body {
+  font-family: Times;
+}
+
+h2 {
+  font-size: 28px;
+  font-family: Times;
+}
+h3 {
+  font-size: 24px;
+  font-style: bold;
+  font-weight: 200;
+  font-family: Times;
+}
+h4 {
+  font-size: 20px;
+  font-family: Times;
+}
+h5 {
+  font-size: 16px;
+  font-family: Times;
+}
+h6 {
+  font-size: 12px;
+  font-family: Times;
+}
+img {
+    display: block;
+    margin: auto;
+}
+
+img-circle {
+    border-radius: 50%;
+}
+
+code { /* Code block */
+    font-size: 15px;
+}
