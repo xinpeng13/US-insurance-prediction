@@ -2,10 +2,12 @@
 title: "JSC370 Final Project"
 author: "Xinpeng Shan"
 date: "2022/4/17"
-output: 
-    html_document:
-        toc: TRUE
-        toc_float: TRUE
+output:
+  html_document:
+    toc: yes
+    toc_float: yes
+  pdf_document:
+    toc: yes
 ---
 
 ```{r echo=F, warning=F, include=F}
@@ -35,7 +37,15 @@ As medical treatments become more costly during the global pandemic, it has impo
 data <- read.csv("data/insurance.csv")
 ```
 
- 
+## Research Question
+
+Since the aim of this research is to predict individual insurance charges in the US, two main research questions are formulated below. By the end of the research, the three research questions will be answered and supported by evidences.
+
+1. Which factor is the most crucial one regarding on the insurance charges paid by individuals?
+2. Do females pay more than males on insurance charges?
+3. How to predict insurance charges by personal informations accurately?
+
+
 ## Methods
 
 ### Data Source
@@ -73,7 +83,7 @@ t <- tribble(
   "region", "the beneficiary's residances in US ", "categorical (northeast, northwest, southeast, southwest)","0",
   "charges", "the medical cost covered by the company", "numarical","0",
 )
-knitr::kable(t, caption = "Informations on variables in the dataset")
+knitr::kable(t, caption = "Table 1. Informations on variables in the dataset")
 ```
 
 ### Variable Distributions
@@ -174,10 +184,9 @@ scatter_children<- newdata2 %>%
 
 ```{r include=T, echo=F, warning=F}
 data$children <- as.factor(data$children)
-p2<- ggplot(data, aes(x=age, y=charges, col = children))+geom_line() 
+p2<- ggplot(data, aes(x=age, y=charges, col = children))+geom_line() + labs(title = 'Insurance charges for people with different number of children and age')
 
-line_children <-ggplotly(p2) %>%
-  layout(title = 'Insurance charges for people with different number of children and age')
+line_children <-ggplotly(p2)
 ```
 
 
@@ -217,10 +226,10 @@ t<-tribble(
   "test", "345"
 )
 
-knitr::kable(t, caption = "Number of rows in the two dataset")
+knitr::kable(t, caption = "Table 2. Number of rows in the two dataset")
 ```
 
-##### Linear Regression
+#### Linear Regression
 
 Firstly, I built a linear regression model with all variables as predictor and charges as responses using the training dataset. From Table 3, we can see that age, bmi, smoker and children have p-values that are extremely small, which indicates that it is very likely that those variables explains the variation in the response.
 
@@ -242,7 +251,7 @@ t <- tribble(
   "regionsouthwest", " 0.03229", 
 )
 
-knitr::kable(t, caption = "p-values of each predictor in the linear regression model built using training dataset")
+knitr::kable(t, caption = "Table 3. p-values of each predictor in the linear regression model built using training dataset")
 ```
 
 Then, I built the two models below to decide which one to use as the final model.
@@ -266,7 +275,7 @@ t<-tribble(
   "model 2", "3",summary(mod2)$r.squared,
 )
 
-knitr::kable(t, caption = "Adjusted R squared of the two models")
+knitr::kable(t, caption = "Table 4. Adjusted R squared of the two models")
 ```
 
 From the table above, we can notice that although model 2 has a slightly (0.0015) lower Adj R squared compared with model 1, it has 1 less predictor, which makes it a more feasible linear model because it can use minimal information to create a reasonable prediction. Therefore, we choose model 2 to be the final model.
@@ -276,7 +285,7 @@ From the table above, we can notice that although model 2 has a slightly (0.0015
 From the Actual versus Prediction Plot, we can see that the points are scattered around the fitted line and there are very few points that appear to be far away from the line vertically, which indicates there are few outliers in the dataset. Since there is no point that is horizontally further away from the mean, there appears to be no significant leverage that pulls the regression line by a great amount.
 
 
-```{r echo=F, fig.height=4,fig.cap="Actual versus Prediction plot of linear model built using training dataset"}
+```{r echo=F, fig.height=4,fig.cap="Figure 4. Actual versus Prediction plot of linear model built using training dataset"}
 plot(train$charges ~ fitted(mod2), xlab="Y-hat(Prediction)", ylab="Y(Charges)",col="#7D4997")
 abline(a = 0, b = 1)
 ```
@@ -284,7 +293,7 @@ abline(a = 0, b = 1)
 
 In the Residual vs. Fitted plot, there is a curved shape, which indicates a slight violation of the linearity assumption. From the Normal Q-Q plot, we can notice that there is some deviation at the right end of the Normal Q-Q plot, which means there is a slight violation of the normality assumption. There is an upward trend on the Scale-Location plot, which is caused by the unequal variance. And finally, in the Residual vs. Leverage plot, There are some amount of points that lie below Cook's distance, which demonstrates the influential points in the training dataset.
 
-```{r echo=F, fig.cap="Plots to analysis the linear regression model built using the training dataset"}
+```{r echo=F, fig.cap="Figure 5. Plots to analyze the linear regression model built using the training dataset"}
 par(mfrow=c(2,2))
 plot(mod2,col="#7D4997")
 ```
@@ -307,7 +316,7 @@ plot(val,col="#7D4997")
 ```
 
 
-##### Regression Tree
+#### Regression Tree
 
 In this section, we built a regression tree to predict charges. To fit a regression tree with reasonable number of splits, we need to determine the optimal complexity parameter (cp) that have the minimal xerror to prune the tree. This process reduce the complexity of regression tree and prevent building a model that is overfited to the training dataset. From the CP table, the minimal xerror is 0.15573 with 7 splits, and 0.00196 as the optimal cp. The pruned tree is shown below.
 
@@ -315,7 +324,7 @@ In this section, we built a regression tree to predict charges. To fit a regress
 treefit <- rpart(charges~.,data=data,method="anova",control=list(minsplit=10,minbucket=3,cp=0,xval=10))
 ```
 
-```{r echo=F, fig.height=3.5, fig.cap="Pruned Regression Tree Model"}
+```{r echo=F, fig.height=3.5, fig.cap="Figure 6. Pruned Regression Tree Model"}
 optimalcp <- treefit$cptable[which.min(treefit$cptable[,"xerror"]),"CP"]
 treepruned <- prune(treefit, cp=optimalcp)
 rpart.plot(treepruned)
@@ -325,11 +334,11 @@ test_t <- cbind(test,regtree_pred)
 rt_test_rmse <- sqrt(mean((test_t$regtree_pred - test_t$charges)^2))
 ```
 
-##### Bagging
+#### Bagging
  
 A bagging model is built to predict charges. From the variable importance plot below, **smoker** is the most important feature on predicting insurance charges, followed by bmi and age. 
 
-```{r echo=F,fig.height=3.5, fig.cap="Variable Importance Plot of Bagging Model"}
+```{r echo=F,fig.height=3.5, fig.cap="Figure 7. Variable Importance Plot of Bagging Model"}
 set.seed(1989)
 bag<- randomForest(charges~.,data=train,mtry=6, na.action=na.omit)
 varImpPlot(bag,n.var = 6,col="#002366")
@@ -338,11 +347,11 @@ yhat_bag = predict(bag, newdata = test)
 bag_test_rmse <- sqrt(mean((yhat_bag-test$charges)^2))
 ```
 
-##### Random Forest
+#### Random Forest
 
 A random forest model is built to predict charges. The variable importance plot is shown below. Similar to the Bagging model,**smoker** is the most important feature on predicting insurance charges, followed by bmi and age. 
 
-```{r echo=F,fig.height=3.5, fig.cap="Variable Importance Plot of Random Forest Model"}
+```{r echo=F,fig.height=3.5, fig.cap="Figure 8. Variable Importance Plot of Random Forest Model"}
 set.seed(1989)
 rf <- randomForest(charges~.,data=train,na.action = na.omit)
 
@@ -351,7 +360,7 @@ yhat_rf = predict(rf, newdata = test)
 rf_test_rmse <- sqrt(mean((yhat_rf-test$charges)^2))
 ```
 
-##### Boosting
+#### Boosting
 
 In this section, boosting model with 1000 trees is built using the training dataset. To pick the best value for the shrinkage parameter, a sequence of boosting models is built with shrinkage parameter values from a range of 0.001 to 0.1 with a step size of 0.005. The training MSE and cross-validation error are calculated for each model and plotted in the graph below. We can notice that the MSE for training data is the smallest when the shrinkage parameter is around 0.025 and the cross-validation error is flattened at around 0.01. Thus, 0.025 is chosen for the shrinkage parameter to build the final boosting model. In this way, the model will not only have a good performance on the training dataset but also can be used to predict unseen future data.
 
@@ -369,7 +378,7 @@ train_boosting <- data[train_ind_boosting,]
 test_boosting <- data[-train_ind_boosting,]
 ```
 
-```{r echo=F,fig.height=3, fig.width=6, fig.cap="MSE and CV Error for Training Dataset verses Shrinkage Parameter"}
+```{r echo=F,fig.height=3, fig.width=6, fig.cap="Figure 9. MSE and CV Error for Training Dataset verses Shrinkage Parameter"}
 set.seed(1989)
 shrinkage = seq(0.001, 0.1, 0.005)
 mse = c()
@@ -389,10 +398,10 @@ ggplot(mse_df, aes(x = s, y = mse,color="Mean Squared Error (MSE)")) + geom_poin
 
 
 
-```{r echo=F,fig.height=3, fig.cap="Variable Importance Plot of Boosting Model"}
+```{r echo=F,fig.height=3, fig.cap="Figure 10. Variable Importance Plot of Boosting Model"}
 set.seed(1989)
 final_boost = gbm(charges~., data = train_boosting, distribution = "gaussian", n.trees = 1000, shrinkage = 0.025, interaction.depth = 1, cv.folds = 10)
-knitr::kable(summary(final_boost), caption = "Relative influence of each variable in Boosting Model")
+knitr::kable(summary(final_boost), caption = "Table 5. Relative influence of each variable in Boosting Model")
 
 yhat_boost <- predict(final_boost, newdata = test_boosting, n.trees = 1000)
 boost_test_rmse <- sqrt(mean((yhat_boost-test_boosting$charges)^2))
@@ -400,7 +409,7 @@ boost_test_rmse <- sqrt(mean((yhat_boost-test_boosting$charges)^2))
 
 From the variable importance plot and the table witch generalized the variable importance values for each variable. The level of importance for each variable have a similar order compare with the previous models. We can notice that **smoker** have a relative influence of 73.2600934 which is five times higher than the relative influence of age. On contrast, **sex** is the variable with least relative influence with a value of 0.0451726
 
-##### XGBoost
+#### XGBoost
 Finally, we created Extreme Gradient Boosting model to predict the salary and set up a grid search on max_depth, nrounds and eta. We trained the XGBoost model using the tuning grid and plot the variable importance plot below.
 
 ```{r include=F}
@@ -425,7 +434,7 @@ xgb <- caret::train(charges~.,
 
 ```
 
-```{r echo=F,fig.height=2.5, fig.cap="Variable Importance Plot of XGBoost Model"}
+```{r echo=F,fig.height=2.5, fig.cap="Figure 11. Variable Importance Plot of XGBoost Model"}
 set.seed(1989)
 plot(varImp(xgb, scale=F)) 
 
@@ -458,7 +467,7 @@ t<-tribble(
   "train", "277.91","328.52","23581.99",
   "test", "205.65","289.05","24421.41",
 )
-knitr::kable(t, caption = "Estimated coefficients of the two linear models built using training and testing dataset respectively")
+knitr::kable(t, caption = "Table 6. Estimated coefficients of the two linear models built using training and testing dataset respectively")
 ```
 
 ##### Mechine learning models
@@ -474,11 +483,20 @@ t<- tribble(
   "Extreme Gradient Boosting (XGBoost)",xgb_test_rmse
 )
 
-knitr::kable(t, caption = "Test RMSE for each mechine learning model")
+knitr::kable(t, caption = "Table 7. Test RMSE for each mechine learning model")
 ```
 
 
 Since the higher insurance bills that the insurance company pays, the larger the bill from the hospital, we can see the drawbacks of smoking from the statistical results. To reduce the medical burden on individuals, we could start by quitting unhealthy habits like smoking and increasing the amount of time we spend on physical exercise to lower the bmi.
+
+
+### Conclusion
+
+To answer the research question, whether people smokes is the most crucial factor regarding on the insurance charges paid by individuals. It is both supported by the coefficient of **smokeryes** from table ? and the variable importance plots of all machine learning models built using the training dataset. 
+
+For the second research question, from the p-value table, "sexmale" has a p-value of 0.48599, which suggests that sex do not explain the variation on insurance charges. Also, from the variable importance plots, it is easy to see that sex is the factor that do not have much influence on charges. So we can conclude that female do not pay more than males on insurance charges.
+
+Finally, for the third research question, we decide on using the Extreme Gradient Boosting model on predicting the insurance charges since it have the smallest RMSE on the testing dataset.
 
 ### Strengths and limitations
 

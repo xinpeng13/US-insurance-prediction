@@ -9,4 +9,4 @@ output:
 
 ## Description
 
-This is the JSC370 final project. In this project, I will be analysing an open-source dataset acquired from Kaggle, which have medical insurance information from the US. To solve the problem of accurately predicting the insurance charges for individuals who live in the United States, six machine learning models are built in total, including linear regression, regression tree, random forest, Bagging, Boosting and XGBoost.
+This is the JSC370 final project. In this project, I conducted data manipulation and exploration on an open-source dataset acquired from Kaggle, which has 1338 observations of medical insurance data from the US. There are three research questions in this project and the primary aim of the analysis is to build mechine learning models that can predict the insurance charges accurately for individuals who live in the United States. Six machine learning models are built in total, including linear regression, regression tree, random forest, Bagging, Boosting, and XGBoost.
