@@ -1,5 +1,5 @@
 ---
-title: "JSC370 Final Project"
+title: "Insurance Charges Prediction with Machine Learning Models"
 author: "Xinpeng Shan"
 date: "2022/4/17"
 output:
@@ -90,7 +90,7 @@ knitr::kable(t, caption = "Table 1. Informations on variables in the dataset")
 
 To do further analysis using the dataset, we need to first understand the distribution of the variable we want to predict, which is **charges**. From Figure 1, we can see that the distribution of charges is extremely right-skewed, indicating that a large percantage of observations in the dataset have insurance charges close to 0.
 
-```{r echo=FALSE,warning=F, fig.cap="Figure 1. Distribution of insurance charges covered by the insurance companies",fig.height=3}
+```{r echo=FALSE,warning=F, fig.cap="Figure 1. Distribution of insurance charges",fig.height=3}
 ggplot(data, aes(charges, ..density..,)) + geom_histogram(bins = 30, fill = "#C7E4D9")+ geom_density() +theme_minimal()
 ```
 
@@ -449,7 +449,7 @@ xgb_test_rmse <- sqrt(mean((yhat_xgb-test_boosting$charges)^2))
 
 ### Key Findings
 
-- From the visualizations and the predictors in the linear regression model, we can notice whether the beneficiary smokes affect the amount of insurance bills that the insurance company pays by a large amount (more than 20000 higher on insurance bill for person who smokes), while variable bmi and age also have a positive association with charges (the coefficients are 289.05 and 205.65 respectively in test dataset). 
+- From the visualizations and the predictors in the linear regression model, we can notice whether the beneficiary smokes affect the amount of insurance bills by a large amount (more than 20000 higher on insurance bill for person who smokes), while variable bmi and age also have a positive association with charges (the coefficients are 289.05 and 205.65 respectively in test dataset). 
 
 - The final linear regression model has 3 predictors including age, bmi, smoker. The linear model explains around 76% of the variation of the response variable (charges) in the training dataset and around 70% of the variation in the testing dataset
 
@@ -492,7 +492,7 @@ Since the higher insurance bills that the insurance company pays, the larger the
 
 ### Conclusion
 
-To answer the research question, whether people smokes is the most crucial factor regarding on the insurance charges paid by individuals. It is both supported by the coefficient of **smokeryes** from table ? and the variable importance plots of all machine learning models built using the training dataset. 
+To answer the research question, whether people smokes is the most crucial factor regarding on the insurance charges paid by individuals. It is both supported by the coefficient of **smokeryes** from Table 6 and the variable importance plots of all machine learning models built using the training dataset. 
 
 For the second research question, from the p-value table, "sexmale" has a p-value of 0.48599, which suggests that sex do not explain the variation on insurance charges. Also, from the variable importance plots, it is easy to see that sex is the factor that do not have much influence on charges. So we can conclude that female do not pay more than males on insurance charges.
 

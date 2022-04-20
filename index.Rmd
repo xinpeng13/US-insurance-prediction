@@ -1,5 +1,5 @@
 ---
-title: "JSC370 Final Project"
+title: "Insurance Charges Prediction with Machine Learning Models"
 author: "Xinpeng Shan"
 output: 
     html_document:
