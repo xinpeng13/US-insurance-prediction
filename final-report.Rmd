@@ -123,9 +123,9 @@ p6
 
 ##### Smoking and Insurance Charges
 
-The first interactive visualization is a line chart with age as x-axis, charges as y-axis and colored by smoker, we can easily notice that the insurance charges is higher across all ages for people who are smokers.
+The first interactive visualization is a barplot with age as x-axis, charges as y-axis and colored by smoker, we can easily notice that the insurance charges is higher across all ages for people who are smokers.
 ```{r include=T, echo=F}
-p1<- ggplot(data, aes(x=age, y=charges, col = smoker))+geom_line() + theme_minimal() + scale_colour_brewer()+ labs(title="Insurance Charges verses Age by Smoker")
+p1<- ggplot(data, aes(age, charges,fill = smoker))+geom_bar(stat="identity",position="dodge") + theme_minimal() + scale_colour_brewer()+ labs(title="Insurance Charges verses Age by Smoker")
 
 ggplotly(p1)
 ```
@@ -166,7 +166,9 @@ scatter_region
 
 ##### Number of Children and Insurance Charges{.tabset}
 
-To visualize how the number of children people have, affacts the amount of insurance charges people pay at different ages, I created the scatterplot and line chart below. For people at a younger age and have less than 4 children, the insurance charges do not differ by a great amount. However, for people over 50 years old, the amount of insurance charges are higher for people who have 1-3 children. From the data we have, people who have 4 children have a higher amount of insurance charges at a younger age compared with people who have other numbers of children, but it may be caused by the lack of data collected for people who have 4 or 5 children.
+To compare the insurance charges paid by people who have different numbers of children, I created the scatterplot and barplot below. In the scatterplot, the size of the bubble is proportional to the mean charges paid by people at that specific age with that number of children. 
+
+For people at a younger age and with less than 4 children, the insurance charges do not differ by a great amount. However, for people over 50 years old, the amount of insurance charges are higher for people who have 1-3 children. From the data we have, people who have 4 children have a higher amount of insurance charges at a younger age compared with people who have other numbers of children, but it may be caused by the lack of data collected for people who have 4 or 5 children.
 
 ```{r include=F, echo=F, warning=F}
 newdata2 <- data %>% na.omit() %>%
@@ -184,7 +186,7 @@ scatter_children<- newdata2 %>%
 
 ```{r include=T, echo=F, warning=F}
 data$children <- as.factor(data$children)
-p2<- ggplot(data, aes(x=age, y=charges, col = children))+geom_line() + labs(title = 'Insurance charges for people with different number of children and age')
+p2<- ggplot(data, aes(x=age, y=charges, fill = children))+geom_bar(stat="identity",position = "dodge") + labs(title = 'Insurance charges for people with different number of children and age')
 
 line_children <-ggplotly(p2)
 ```
@@ -196,7 +198,7 @@ line_children <-ggplotly(p2)
 scatter_children
 ```
 
-###### Line Chart
+###### Bar Plot
 
 ```{r echo=FALSE,warning=FALSE}
 line_children
